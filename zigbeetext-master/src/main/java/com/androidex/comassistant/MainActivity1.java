@@ -259,6 +259,7 @@ public class MainActivity1 extends AppCompatActivity implements View.OnClickList
                                 serial.serial_writeHex(mSerialFd, "5aaa090100");//广播
                                 tv_broadType.setText("广播");
                                 break;
+
                             case 1:
                                 showMessage("选择了点播");
                                 serial.serial_writeHex(mSerialFd, "5aaa090101");//点播
@@ -388,8 +389,8 @@ public class MainActivity1 extends AppCompatActivity implements View.OnClickList
                     return;
                 }
                 if (broadcast.length() > 0) {
-                    serial.serial_writeHex(mSerialFd, "5aaaa202" + short_adress + broadcast);
-                    showMessage("发送点播内容为：" + "5aaaa202" + short_adress + broadcast);
+                    serial.serial_writeHex(mSerialFd, "5aaaa204" + short_adress + broadcast);
+                    showMessage("发送点播内容为：" + "5aaaa204" + short_adress + broadcast);
 
                 } else {
                     if (devices == 0) {
@@ -415,8 +416,8 @@ public class MainActivity1 extends AppCompatActivity implements View.OnClickList
                     return;
                 }
                 if (broadcast.length() > 0) {
-                    serial.serial_writeHex(mSerialFd, "5aaaa302" + multicast + broadcast);//
-                    showMessage("发送组播播内容为：" + "5aaaa202" + multicast + broadcast);
+                    serial.serial_writeHex(mSerialFd, "5aaaa304" + multicast + broadcast);//
+                    showMessage("发送组播播内容为：" + "5aaaa204" + multicast + broadcast);
 
                 } else {
                     if (devices == 0) {
