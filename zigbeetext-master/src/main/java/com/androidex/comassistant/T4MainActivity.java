@@ -123,32 +123,24 @@ public class T4MainActivity extends AppCompatActivity implements View.OnClickLis
         @Override
         public void run() {
             super.run();
-            Log.e("=====mReadThread", "xxx线程开启0");
             while (!isInterrupted()) {
                 try {
                     byte[] data = serial.serial_read(mSerialFd, 20, 3 * 1000);
-                    Log.e("mReadThread", "xxx线程开启1");
                     // String data = serial.native_serial_readHex(mSerialFd, 20, 3 * 1000);
                     if (data == null) continue;
                     if (data.length > 0) {
                         ComBean ComRecData = new ComBean(PORT_ADDR, data, data.length);
-                        Log.e("====mReadThread", "xxx线程开启3");
-                        Log.e("====xxxPORT_ADDR波特率:", PORT_ADDR);
                         Message message = handler.obtainMessage();
                         message.what = 0x01;
                         message.obj = ComRecData;
                         handler.sendMessage(message);
-
-                        Log.e("===xxx读取到的数据:", data + "");
                     }
                     try {
                         Thread.sleep(50);//延时50ms
                     } catch (InterruptedException e) {
-                        Log.e("===mReadThread", "xxx线程开启8");
                         e.printStackTrace();
                     }
                 } catch (Throwable e) {
-                    Log.e("===mReadThread", "xxx线程开启7");
                     e.printStackTrace();
                     return;
                 }
