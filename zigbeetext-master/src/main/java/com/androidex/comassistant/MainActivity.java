@@ -8,22 +8,15 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.androidex.comassistant.util.ComBean;
 import com.androidex.plugins.kkserial;
-
-import static com.androidex.comassistant.R.id.SpinnerBaud_rate;
-import static com.androidex.comassistant.R.id.SpinnerChannel;
-import static com.androidex.comassistant.R.id.Spinnertransmitting_power;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     public static String PORT_ADDR_PASSWORD_KEYPAD_1 = "/dev/ttyMT2,38400,N,1,8";
@@ -32,15 +25,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public static String PORT_ADDR = PORT_ADDR_PASSWORD_KEYPAD_1;
     private ScannerController controller;
     private kkserial serial;
-    private TextView tv_show;
-    private Button btn_send, btn_start, btn_root, btn_setBroad1, btn_setBroad2;
-    private Button btn_sendbroadcast1, btn_sendbroadcast2;
+    private TextView tv_show, tv_config, tv_type, tv_broadType;
+    private Button btn_send, btn_start, btn_root, btn_type, btn_broadType, btn_setBroad1, btn_setBroad2, btn_setNet,btn_powerOn;
+    private Button btn_sendbroadcast1, btn_catConfig, btn_clear, btn_bunchPlanting, btn_multicast, btn_setMulticast_target;
     private EditText et_send, et_short_adress, et_broadcast, et_Multicast;
     private ReadThread mReadThread;
     protected int mSerialFd;
     private int devices = -1;
-    private Spinner spinnerCOMA, spinnerChannel, spinnertransmitting_power, spinnerBaud_rate, spinnerBroadCast;
-    private ToggleButton toggleButton, btn_openVCC;
+    private ToggleButton toggleButton;
+    int buitder_type_item = 0;
+    int buitder_typeConfig_item = 0;
+    int builder_net = 0;
+    String multicast;
+    String broadcast;
+    String short_adress;
 
     public Handler handler = new Handler() {
         @Override
@@ -57,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main1);
         if (serial == null) {
             serial = new kkserial(this);
         }
@@ -71,11 +69,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mSerialFd = serial.serial_open(PORT_ADDR);
         Log.e("xxxmSerialFd", mSerialFd + "");
         openVCC();
-        initSpinner();
         if (mSerialFd > 0) {
             Log.e("MainActivity", "xxx串口打开成功");
+            showMessage("串口打开成功");
         } else {
             Log.e("MainActivity", "xxx串口打开失败");
+            showMessage("串口打开失败");
+            return;
         }
         if (mReadThread == null) {
             mReadThread = new ReadThread();
@@ -85,7 +85,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void getDevicesCode() {
 
-        int[] array = getResources().getIntArray(R.array.spinner_value1);
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("请选择设备");
         builder.setCancelable(false);
@@ -113,17 +112,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         } else {
                             showMessage("串口配置失败");
                         }
-
-                        dialog.dismiss();
                         break;
 
                     case 2:
                         devices = 2;
                         PORT_ADDR = PORT_ADDR_PASSWORD_KEYPAD_3;
                         initStartConfig();//在选择完设备之后再运行
-                        dialog.dismiss();
+
                         break;
                 }
+                dialog.dismiss();
             }
         });
         builder.show();
@@ -131,6 +129,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public void initView() {
         tv_show = (TextView) findViewById(R.id.tv_show);
+        tv_type = (TextView) findViewById(R.id.tv_type);
+        tv_broadType = (TextView) findViewById(R.id.tv_broadType);
+        tv_config = (TextView) findViewById(R.id.tv_config);
         et_send = (EditText) findViewById(R.id.et_send);
         et_short_adress = (EditText) findViewById(R.id.et_short_adress);
         et_broadcast = (EditText) findViewById(R.id.et_broadcast);
@@ -139,66 +140,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btn_send = (Button) findViewById(R.id.btn_send);
         btn_start = (Button) findViewById(R.id.btn_start);
         btn_root = (Button) findViewById(R.id.btn_root);
-        btn_setBroad1 = (Button) findViewById(R.id.btn_setBroad1);
-        btn_setBroad2 = (Button) findViewById(R.id.btn_setBroad2);
+        btn_type = (Button) findViewById(R.id.btn_type);
+        btn_broadType = (Button) findViewById(R.id.btn_broadType);
+        btn_setBroad1 = (Button) findViewById(R.id.btn_setBroad1);//设置本地组播号
+        btn_setBroad2 = (Button) findViewById(R.id.btn_setBroad2);//设置目标短地址
+        btn_setMulticast_target = (Button) findViewById(R.id.btn_setMulticast_target);//设置目标组播号
+        btn_setNet = (Button) findViewById(R.id.btn_setNet);//设置入网允许状态
         btn_sendbroadcast1 = (Button) findViewById(R.id.btn_sendbroadcast1);
-        btn_sendbroadcast2 = (Button) findViewById(R.id.btn_sendbroadcast2);
+        btn_bunchPlanting = (Button) findViewById(R.id.btn_bunchPlanting);
+        btn_multicast = (Button) findViewById(R.id.btn_multicast);
+        btn_catConfig = (Button) findViewById(R.id.btn_catConfig);
+        btn_clear = (Button) findViewById(R.id.btn_clear);
+        btn_powerOn = (Button) findViewById(R.id.btn_powerOn);
 
         toggleButton = (ToggleButton) findViewById(R.id.toggleButton);
-        btn_openVCC = (ToggleButton) findViewById(R.id.btn_openVCC);
 
-        spinnerCOMA = (Spinner) findViewById(R.id.SpinnerCOMA);
-        spinnerChannel = (Spinner) findViewById(SpinnerChannel);
-        spinnertransmitting_power = (Spinner) findViewById(Spinnertransmitting_power);
-        spinnerBaud_rate = (Spinner) findViewById(SpinnerBaud_rate);
-        spinnerBroadCast = (Spinner) findViewById(R.id.SpinnerBroadCast);
         btn_send.setOnClickListener(this);
         btn_start.setOnClickListener(this);
         btn_root.setOnClickListener(this);
+        btn_type.setOnClickListener(this);
+        btn_broadType.setOnClickListener(this);
         btn_setBroad1.setOnClickListener(this);
         btn_setBroad2.setOnClickListener(this);
         btn_sendbroadcast1.setOnClickListener(this);
-        btn_sendbroadcast2.setOnClickListener(this);
+        btn_bunchPlanting.setOnClickListener(this);
+        btn_setMulticast_target.setOnClickListener(this);
+        btn_setNet.setOnClickListener(this);
+        btn_powerOn.setOnClickListener(this);
+
+        btn_multicast.setOnClickListener(this);
+        btn_catConfig.setOnClickListener(this);
+        btn_clear.setOnClickListener(this);
 
         toggleButton.setChecked(true);
-        btn_openVCC.setChecked(true);
         toggleButton.setOnCheckedChangeListener(new ToggleButtonCheckedChangeEvent());
-        btn_openVCC.setOnCheckedChangeListener(new ToggleButtonCheckedChangeEvent());
 
-
-    }
-
-    private void initSpinner() {
-        ArrayAdapter<CharSequence> adapter1 = ArrayAdapter.createFromResource(this,
-                R.array.spinner_value1, android.R.layout.simple_spinner_item);
-        adapter1.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCOMA.setAdapter(adapter1);
-
-        ArrayAdapter<CharSequence> adapter2 = ArrayAdapter.createFromResource(this,
-                R.array.spinner_channel, android.R.layout.simple_spinner_item);
-        adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerChannel.setAdapter(adapter2);
-
-        ArrayAdapter<CharSequence> adapter3 = ArrayAdapter.createFromResource(this,
-                R.array.spinner_baudrate, android.R.layout.simple_spinner_item);
-        adapter3.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerBaud_rate.setAdapter(adapter3);
-
-        ArrayAdapter<CharSequence> adapter4 = ArrayAdapter.createFromResource(this,
-                R.array.spinner_transmitting_power, android.R.layout.simple_spinner_item);
-        adapter4.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnertransmitting_power.setAdapter(adapter4);
-
-        ArrayAdapter<CharSequence> adapter5 = ArrayAdapter.createFromResource(this,
-                R.array.spinner_BroadCast, android.R.layout.simple_spinner_item);
-        adapter5.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerBroadCast.setAdapter(adapter5);
-
-        spinnerCOMA.setOnItemSelectedListener(new ItemSelectedEvent());
-        spinnerChannel.setOnItemSelectedListener(new ItemSelectedEvent());
-        spinnerBaud_rate.setOnItemSelectedListener(new ItemSelectedEvent());
-        spinnertransmitting_power.setOnItemSelectedListener(new ItemSelectedEvent());
-        spinnerBroadCast.setOnItemSelectedListener(new ItemSelectedEvent());
     }
 
     @Override
@@ -216,7 +192,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //Log.e("xxx发送的指令:", bt + "");
 
                 serial.serial_writeHex(mSerialFd, str);
-                serial.serial_writeHex(mSerialFd, "5aaa0b0100");
+                // serial.serial_writeHex(mSerialFd, "5aaa0b0105");
 //              String serial_readHex = serial.serial_readHex(mSerialFd, 20, 3 * 1000);
 //              Log.e("xxx读取到的数据:", serial_readHex + "");
                 break;
@@ -226,53 +202,303 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btn_root:
                 contral("01");
                 break;
+
             case R.id.btn_clear:
-                contral("02");
+                tv_show.setText("接收到的指令：\n");
+
+                break;
+            case R.id.btn_powerOn:
+                closeVCC();
+                openVCC();
+
+                break;
+
+            case R.id.btn_type://节点类型
+                final AlertDialog.Builder builder_type = new AlertDialog.Builder(this);
+                builder_type.setTitle("请选择节点类型");
+                builder_type.setCancelable(true);
+
+                builder_type.setSingleChoiceItems(R.array.spinner_value1, buitder_type_item, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int i) {
+                        buitder_type_item = i;
+                        switch (i) {
+                            case 0:
+                                showMessage("选择了协调器");
+                                serial.serial_writeHex(mSerialFd, "5aaa010100");
+                                tv_type.setText("协调器");
+                                break;
+                            case 1:
+                                showMessage("选择了路由器");
+                                serial.serial_writeHex(mSerialFd, "5aaa010101");
+                                tv_type.setText("路由器");
+                                break;
+
+                            case 2:
+                                showMessage("选择了终端");
+                                serial.serial_writeHex(mSerialFd, "5aaa010102");
+                                tv_type.setText("终端");
+                                break;
+                        }
+                        dialog.dismiss();
+                    }
+                });
+                builder_type.show();
+                break;
+            case R.id.btn_broadType:
+                final AlertDialog.Builder builder_broadType = new AlertDialog.Builder(this);
+                builder_broadType.setTitle("请选择透传方式类型");
+                builder_broadType.setCancelable(true);
+                builder_broadType.setSingleChoiceItems(R.array.spinner_BroadCast, buitder_typeConfig_item, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int i) {
+                        buitder_typeConfig_item = i;
+                        switch (i) {
+                            case 0:
+                                showMessage("选择了广播");
+                                serial.serial_writeHex(mSerialFd, "5aaa090100");//广播
+                                tv_broadType.setText("广播");
+                                break;
+
+                            case 1:
+                                showMessage("选择了点播");
+                                serial.serial_writeHex(mSerialFd, "5aaa090101");//点播
+                                tv_broadType.setText("点播");
+                                break;
+
+                            case 2:
+                                showMessage("选择了组播");
+                                serial.serial_writeHex(mSerialFd, "5aaa090102");//组播
+                                tv_broadType.setText("组播");
+                                break;
+                        }
+                        dialog.dismiss();
+                    }
+                });
+                builder_broadType.show();
                 break;
 
             case R.id.btn_setBroad1://设置本地组播号
-                String Multicast = et_Multicast.getText().toString().trim();
-                if (Multicast.length()==4){
-                    serial.serial_writeHex(mSerialFd, "5aaa0602"+Multicast);//
-                }else {
+                multicast = et_Multicast.getText().toString().trim();
+                if (multicast.length() == 4) {
+                    serial.serial_writeHex(mSerialFd, "5aaa0602" + multicast);//
+                } else {
                     showMessage("本地组播号必须为4位字符");
                 }
                 break;
 
             case R.id.btn_setBroad2://设置目标短地址
-
-                String short_adress = et_short_adress.getText().toString().trim();
-                if (short_adress.length()==4){
-                    serial.serial_writeHex(mSerialFd, "5aaa0702"+short_adress);//
-                }else {
+                short_adress = et_short_adress.getText().toString().trim();
+                if (short_adress.length() == 4) {
+                    serial.serial_writeHex(mSerialFd, "5aaa0702" + short_adress);//
+                } else {
                     showMessage("目标短地址必须为4位字符");
                 }
-
                 break;
 
-            case R.id.btn_sendbroadcast1://发送广播
+            case R.id.btn_setMulticast_target://设置目标组播号
 
-                String broadcast = et_broadcast.getText().toString().trim();
-                if (broadcast!=null){
-
-                    serial.serial_writeHex(mSerialFd, "5aaaa102"+broadcast);//
-                }else {
-                    showMessage("发送广播内容不能为空");
+                multicast = et_Multicast.getText().toString().trim();
+                if (multicast.length() == 4) {
+                    serial.serial_writeHex(mSerialFd, "5aaa0802" + multicast);//
+                } else {
+                    showMessage("目标组播号必须为4位字符");
                 }
+
                 break;
-            case R.id.btn_sendbroadcast2://发送点播
+
+
+            case R.id.btn_setNet://设置入网允许状态
+
+                final AlertDialog.Builder builder_setNet = new AlertDialog.Builder(this);
+                builder_setNet.setTitle("请设置入网允许状态");
+                builder_setNet.setCancelable(true);
+
+                builder_setNet.setSingleChoiceItems(R.array.spinner_setNet, builder_net, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int i) {
+                        builder_net = i;
+                        switch (i) {
+                            case 0:
+                                showMessage("设备上电允许加入,连上往后禁止加入");
+                                serial.serial_writeHex(mSerialFd, "5aaa0b0100");
+
+                                break;
+                            case 1:
+                                showMessage("设备上电允许加入,连上网后一直允许加入");
+                                serial.serial_writeHex(mSerialFd, "5aaa0b0105");
+                                tv_type.setText("路由器");
+                                break;
+
+                            case 2:
+                                showMessage("设备上电允许加入,连上网后所有路由设备禁止加入");
+                                serial.serial_writeHex(mSerialFd, "5aaa0b0106");
+                                tv_type.setText("终端");
+                                break;
+                            case 3:
+                                showMessage("设备上电允许加入,所有路由设备允许加入 10s");
+                                serial.serial_writeHex(mSerialFd, "5aaa0b0107");
+                                break;
+                            case 4:
+                                showMessage("设备上电允许加入,所有路由设备允许加入 20s");
+                                serial.serial_writeHex(mSerialFd, "5aaa0b0108");
+                                break;
+                            case 5:
+                                showMessage("设备上电不允许加入,连上往后禁止加入");
+                                serial.serial_writeHex(mSerialFd, "5aaa0b0110");
+                                break;
+                            case 6:
+                                showMessage("设备上电不允许加入,连上网后一直允许加入");
+                                serial.serial_writeHex(mSerialFd, "5aaa0b0115");
+                                break;
+                        }
+                        dialog.dismiss();
+                    }
+                });
+                builder_setNet.show();
+
+                break;
+            case R.id.btn_sendbroadcast1://发送广播
+                broadcast = et_broadcast.getText().toString().trim();
+                if (broadcast.length() > 0) {
+
+                    showMessage("发送广播内容为：" + "5aaaa101" + broadcast);
+
+                } else {
+                    if (devices == 0) {
+                        serial.serial_writeHex(mSerialFd, "5aaaa10101");//
+                        showMessage("发送广播默认内容为：" + "5aaaa10101");
+                    } else if (devices == 1) {
+
+                        serial.serial_writeHex(mSerialFd, "5aaaa10102");//
+                        showMessage("发送广播默认内容为：" + "5aaaa10102");
+                    } else {
+                        serial.serial_writeHex(mSerialFd, "5aaaa10103");//
+                        showMessage("发送广播默认内容为：" + "5aaaa10103");
+                    }
+                }
+
+                break;
+            case R.id.btn_bunchPlanting://发送点播
 
                 short_adress = et_short_adress.getText().toString().trim();
                 broadcast = et_broadcast.getText().toString().trim();
-                if (short_adress.length()==4&&broadcast!=null){
 
-                    serial.serial_writeHex(mSerialFd, "5aaaa202"+short_adress+broadcast);
-                }else if (broadcast==null){
-                    showMessage("发送广播内容不能为空");
-                }else showMessage("短地址必须为4位字符");
+                if (short_adress.length() < 3) {
+                    showMessage("目标短地址错误请重新输入");
+                    return;
+                }
+                if (broadcast.length() > 0) {
+                    serial.serial_writeHex(mSerialFd, "5aaaa204" + short_adress + broadcast);
+                    showMessage("发送点播内容为：" + "5aaaa204" + short_adress + broadcast);
+
+                } else {
+                    if (devices == 0) {
+                        serial.serial_writeHex(mSerialFd, "5aaaa203" + short_adress + "01");//
+                        showMessage("发送点播默认内容为：" + "5aaaa203" + short_adress + "01");
+                    } else if (devices == 1) {
+
+                        serial.serial_writeHex(mSerialFd, "5aaaa203" + short_adress + "02");//
+                        showMessage("发送点播默认内容为：" + "5aaaa203" + short_adress + "02");
+                    } else {
+                        serial.serial_writeHex(mSerialFd, "5aaaa203" + short_adress + "03");//
+                        showMessage("发送点播默认内容为：" + "5aaaa203" + short_adress + "03");
+                    }
+                }
+
+
                 break;
+            case R.id.btn_multicast://发送组播
+                multicast = et_Multicast.getText().toString().trim();
+                broadcast = et_broadcast.getText().toString().trim();
+                if (multicast.length() <= 2) {
+                    showMessage("目标组播号错误，请重新输入");
+                    return;
+                }
+                if (broadcast.length() > 0) {
+                    serial.serial_writeHex(mSerialFd, "5aaaa304" + multicast + broadcast);//
+                    showMessage("发送组播播内容为：" + "5aaaa204" + multicast + broadcast);
 
+                } else {
+                    if (devices == 0) {
+                        serial.serial_writeHex(mSerialFd, "5aaaa303" + multicast + "01");//
+                        showMessage("发送组播默认内容为：" + "5aaaa303" + multicast + "01");
+                    } else if (devices == 1) {
 
+                        serial.serial_writeHex(mSerialFd, "5aaaa303" + multicast + "02");//
+                        showMessage("发送组播默认内容为：" + "5aaaa303" + multicast + "02");
+                    } else {
+                        serial.serial_writeHex(mSerialFd, "5aaaa303" + multicast + "03");//
+                        showMessage("发送组播默认内容为：" + "5aaaa303" + multicast + "03");
+                    }
+                }
+
+                break;
+            case R.id.btn_catConfig://查看参数
+
+                final AlertDialog.Builder builder_catConfig = new AlertDialog.Builder(this);
+                builder_catConfig.setTitle("请选择需要查看的参数");
+                builder_catConfig.setCancelable(true);
+                builder_catConfig.setSingleChoiceItems(R.array.spinner_config, 0, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int i) {
+                        switch (i) {
+                            case 0:
+                                showMessage("节点类型");
+                                serial.serial_writeHex(mSerialFd, "5aaab1");
+                                break;
+                            case 1:
+                                showMessage("PAN_ID");
+                                serial.serial_writeHex(mSerialFd, "5aaab2");
+                                break;
+
+                            case 2:
+                                showMessage("Channel");
+                                serial.serial_writeHex(mSerialFd, "5aaab3");
+                                break;
+                            case 3:
+                                showMessage("波特率");
+                                serial.serial_writeHex(mSerialFd, "5aaab4");
+                                break;
+                            case 4:
+                                showMessage("发射功率");
+                                serial.serial_writeHex(mSerialFd, "5aaab5");
+                                break;
+                            case 5:
+                                showMessage("本地组播号");
+                                serial.serial_writeHex(mSerialFd, "5aaab6");
+                                break;
+                            case 6:
+                                showMessage("目标短地址");
+                                serial.serial_writeHex(mSerialFd, "5aaab7");
+                                break;
+                            case 7:
+                                showMessage("目标组播号");
+                                serial.serial_writeHex(mSerialFd, "5aaab8");
+                                break;
+                            case 8:
+                                showMessage("全透传发送方式");
+                                serial.serial_writeHex(mSerialFd, "5aaab9");
+                                break;
+                            case 9:
+                                showMessage("MAC地址");
+                                serial.serial_writeHex(mSerialFd, "5aaaba");
+                                break;
+                            case 10:
+                                showMessage("本地短地址");
+                                serial.serial_writeHex(mSerialFd, "5aaabb");
+                                break;
+                            case 11:
+                                showMessage("网络密匙");
+                                serial.serial_writeHex(mSerialFd, "5aaabc");
+                                break;
+                        }
+                        dialog.dismiss();
+                    }
+                });
+                builder_catConfig.show();
+
+                break;
         }
     }
 
@@ -284,12 +510,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case "01"://Data 为模块恢复出厂设置
                 serial.serial_writeHex(mSerialFd, "5aaa0001" + str);
-
+                tv_broadType.setText("点播");
+                tv_type.setText("路由器");
+                buitder_type_item = 1;
+                buitder_typeConfig_item = 1;
+                showMessage("恢复出厂设置");
                 break;
             case "02"://模块清除保存在本地的网络信息
                 serial.serial_writeHex(mSerialFd, "5aaa0001" + str);
                 break;
-
         }
     }
 
@@ -326,7 +555,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             controller.initGPIO();
             controller.openScanner();
             showMessage("打开设备1VCC");
-            Log.e("xxx", "打开设备0VCC");
         } else if (devices == 1) {
             if (controller == null) {
                 controller = new ScannerController();
@@ -337,14 +565,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             } else {
                 showMessage("设备2VCC打开失败");
             }
-        } else if (devices==2){
+        } else if (devices == 2) {
 
 
-
-        }else {
+        } else {
             showMessage("未找到设备");
             Log.e("xxx", "未找到设备");
-            btn_openVCC.setSelected(false);
         }
     }
 
@@ -360,110 +586,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
     }
-
-    class ItemSelectedEvent implements Spinner.OnItemSelectedListener {
-        public void onItemSelected(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
-            if (mSerialFd <= 0) {
-                showMessage("请先打开串口");
-                return;
-            }
-            switch (arg0.getId()) {
-                case R.id.SpinnerCOMA://节点类型
-                    Log.e("xxxnodetype", spinnerCOMA.getSelectedItem().toString());
-                    if (mSerialFd <= 0) {
-                        showMessage("请先打开串口");
-                        return;
-                    }
-
-                    switch (arg2) {
-                        case 0:
-                            serial.serial_writeHex(mSerialFd, "5aaa010100");//设备设置为协调器
-                            showMessage("设备设置为协调器");
-                            break;
-                        case 1:
-                            serial.serial_writeHex(mSerialFd, "5aaa010101");//设备设置为路由器
-                            showMessage("设备设置为路由器");
-                            break;
-                        case 2:
-                            serial.serial_writeHex(mSerialFd, "5aaa010102");//设备设置为终端
-                            showMessage("设备设置为终端");
-                            break;
-                    }
-                    break;
-                case SpinnerChannel://Channel
-                    serial.serial_writeHex(mSerialFd, "5aaa0301" + (11 + arg2));//设备设置为终端
-                    Log.e("xxxSpinnerChannel", spinnerChannel.getSelectedItem().toString());
-                    showMessage("将Channel设置为" + (2405 + arg2 * 5) + "MHz");
-                    break;
-
-                case Spinnertransmitting_power://发射功率
-                    Log.e("xxxSpinnertrans", spinnertransmitting_power.getSelectedItem().toString());
-                    switch (arg2) {
-                        case 0:
-                            serial.serial_writeHex(mSerialFd, "5aaa050100");//发射功率为：-4 dbm（带 PA：14dbm）
-
-                            break;
-                        case 1:
-                            serial.serial_writeHex(mSerialFd, "5aaa050101");//发射功率为：-1.5 dbm（带 PA：17dbm）
-
-                            break;
-                        case 2:
-                            serial.serial_writeHex(mSerialFd, "5aaa050102");//发射功率为：1 dbm（带 PA：19dbm）
-
-                            break;
-                    }
-
-                    break;
-
-                case SpinnerBaud_rate://波特率
-
-                   /* Log.e("xxxSpinnerBaud_rate", spinnerBaud_rate.getSelectedItem().toString());
-                    serial.serial_writeHex(mSerialFd, "5aaa04010" + arg2);//
-                    int[] baudrate = getResources().getIntArray(R.array.spinner_baudrate);
-                    showMessage("设置波特率为" + baudrate[arg2]);//此处更改设备的波特率，更改后需重新设置串口并打开串口
-                    Baud_rate = baudrate[arg2] + "";
-                    mSerialFd = serial.serial_open(PORT_ADDR);
-                    Log.e("xxxmSerialFd", mSerialFd + "");
-                    if (mSerialFd > 0) {
-                        Log.e("MainActivity", "xxx串口打开成功");
-                        toggleButton.setChecked(true);
-                    } else {
-                        Log.e("MainActivity", "xxx串口打开失败");
-                        toggleButton.setChecked(false);
-                    }*/
-
-                    break;
-
-                case R.id.SpinnerBroadCast://广播，点播，组播
-                    switch (arg2) {
-                        case 0:
-                            Log.e("xxxbroadcast", "广播");
-                            serial.serial_writeHex(mSerialFd, "5aaa090100");//广播
-                            showMessage("全透传发送方式为广播");
-                            break;
-                        case 1:
-                            Log.e("xxxbroadcast", "点播");
-
-                            serial.serial_writeHex(mSerialFd, "5aaa090101");//点播
-                            showMessage("全透传发送方式改为点播");
-                            break;
-                        case 2:
-                            Log.e("xxxbroadcast", "组播");
-
-                            serial.serial_writeHex(mSerialFd, "5aaa090102");//组播
-                            showMessage("全透传发送方式改为组播");
-                            break;
-                    }
-
-                    break;
-            }
-        }
-
-        @Override
-        public void onNothingSelected(AdapterView<?> parent) {
-        }
-    }
-
 
     private class ReadThread extends Thread {
         @Override
@@ -505,45 +627,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             switch (buttonView.getId()) {
                 case R.id.toggleButton:
                     if (toggleButton.isChecked()) {
-                        mSerialFd = serial.serial_open(PORT_ADDR_PASSWORD_KEYPAD_1);
+                        mSerialFd = serial.serial_open(PORT_ADDR);
+                        Log.e("xxxmSerialFd", mSerialFd + "");
                         if (mSerialFd > 0) {
-                            Toast.makeText(MainActivity.this, "串口已打开", Toast.LENGTH_LONG).show();
-                            Log.e("xxx串口打开成功", "");
+                            showMessage("xxxtoggleButton:串口已打开");
                             toggleButton.setSelected(true);
+                            if (mReadThread == null) {
+                                mReadThread = new ReadThread();
+                                mReadThread.start();
+                            }
                         } else {
-                            Toast.makeText(MainActivity.this, "串口打开失败", Toast.LENGTH_LONG).show();
-                            Log.e("xxx串口打开失败", "");
+                            showMessage("xxxtoggleButton:串口打开失败");
                             toggleButton.setChecked(false);
+                            serial.serial_close(mSerialFd);
                         }
-
                     } else {
-                        Toast.makeText(MainActivity.this, "串口已关闭", Toast.LENGTH_LONG).show();
+                        showMessage("串口已关闭");
                         serial.serial_close(mSerialFd);
                         mSerialFd = 0;
                         toggleButton.setSelected(false);
                     }
                     break;
-                case R.id.btn_openVCC:
-                    if (btn_openVCC.isChecked()) {
-
-                        openVCC();
-
-                    } else {
-
-                        closeVCC();
-                        btn_openVCC.setSelected(false);
-                    }
-
-
-                    break;
-
             }
         }
     }
 
     public void showMessage(String str) {
         if (str != null) {
-            Toast.makeText(MainActivity.this, str, Toast.LENGTH_LONG).show();
+            Toast.makeText(MainActivity.this, str, Toast.LENGTH_SHORT).show();
             Log.e("xxxToast", str);
         } else {
             Log.e("xxxToast", "Toast is not null");
