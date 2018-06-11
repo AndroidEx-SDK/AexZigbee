@@ -96,7 +96,6 @@ public class ScannerController {
      * @return
      */
     public boolean getSerialportJurisdiction() {
-
         try {
 
 //            this.p = Runtime.getRuntime().exec("su");
@@ -106,10 +105,8 @@ public class ScannerController {
 //
 //            this.p.getOutputStream().write(devices2_serialport_setenforce.getBytes());
 //            this.p.getOutputStream().flush();
-
             String s = MyFunc.runShellCommand(devices2_serialport_jurisdiction);
             String s1 = MyFunc.runShellCommand(devices2_serialport_setenforce);
-
 //            String command = "chmod 777 " + "/dev/ttyHSL1";
 //            Runtime runtime = Runtime.getRuntime();
 //            runtime.exec(command);
@@ -123,10 +120,7 @@ public class ScannerController {
 //            }else {
 //                Log.e("xxxxcommandResult", commandResult.errorMsg+"===commandResult1:"+commandResult1.successMsg);
 //            }
-
-
             Log.e("xxxxS:", s + "===S1" + s1);
-
             Log.e("xxxxScannerController:", "设备2-串口申请权限成功");
         } catch (Exception e) {
             Log.e("xxxxScannerController:", "设备2-串口申请权限失败");

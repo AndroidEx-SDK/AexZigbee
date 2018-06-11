@@ -95,7 +95,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     case 0:
                         devices = 0;
                         PORT_ADDR = PORT_ADDR_PASSWORD_KEYPAD_1;
-
                         initStartConfig();//在选择完设备之后再运行
                         break;
                     case 1:
@@ -105,7 +104,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             controller = new ScannerController();
                         }
                         boolean jurisdiction = controller.getSerialportJurisdiction();
-
                         if (jurisdiction) {
                             showMessage("串口配置成功");
                             initStartConfig();//在选择完设备之后再运行
